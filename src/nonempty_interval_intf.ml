@@ -51,7 +51,7 @@ module type S_stable = sig
 
   module Stable : sig
     module V1 : sig
-      type nonrec t = t [@@deriving bin_io, compare, sexp, stable_witness]
+      type nonrec t = t [@@deriving bin_io, compare, sexp, stable_witness, hash]
     end
   end
 end
