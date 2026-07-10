@@ -18,6 +18,9 @@ depends: [
   "dune"      {>= "3.17.0"}
 ]
 available: arch != "x86_32"
+conflicts: [
+  "oxcaml-compiler" {< "5.2.0minus39"}
+]
 synopsis: "An Interval_lib.Interval but with empty intervals disallowed."
 description: "
 An interval with an extra layer of safety and more convenient accessors that return values instead of value options.
