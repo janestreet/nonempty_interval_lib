@@ -3,9 +3,23 @@ open! Core
 (** See {!Nonempty_interval} below. *)
 
 module type S = sig
-  type t [@@deriving bin_io, sexp, compare, equal, hash]
   type bound
+  type t [@@deriving bin_io, sexp, compare, equal, hash]
   type interval
+
+  (** [Set] is a set of pairwise-disjoint nonempty intervals. *)
+  module Set : sig
+    type outer := t
+    type t [@@deriving bin_io, sexp]
+
+    (** [create_from_intervals_exn outers] raises if [outers] are not disjoint. *)
+    val create_from_intervals_exn : outer list -> t
+
+    val union_list : t list -> t
+
+    (** [to_list] returns intervals in ascending order. *)
+    val to_list : t -> outer list
+  end
 
   val of_interval : interval -> t option
   val of_interval_exn : interval -> t
