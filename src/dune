@@ -3,4 +3,4 @@
  (public_name nonempty_interval_lib)
  (libraries core core_unix.interval_lib)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

@@ -6,4 +6,4 @@ type t =
   | `Above
   | `Interval_is_empty
   ]
-[@@deriving compare, sexp]
+[@@deriving compare ~localize, sexp]

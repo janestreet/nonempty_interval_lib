@@ -2,8 +2,13 @@ open! Core
 open! Interval_lib
 include Nonempty_interval_intf
 
-module Make (Bound : Bound) = struct
-  include Interval.Make (Bound)
+module%template.portable
+  [@mode m = (global, local)] [@modality p]
+  Make
+    (Bound : Bound
+  [@mode m]) =
+struct
+  include Interval.Make [@mode m] [@modality p] (Bound)
 
   let of_interval interval = Option.some_if (not (is_empty interval)) interval
 
@@ -71,44 +76,63 @@ module Make (Bound : Bound) = struct
   ;;
 end
 
-module Make_stable (Bound : Bound_stable) = struct
-  include Make (Bound)
+module%template [@mode m = (global, local)] Make_stable (Bound : Bound_stable [@mode m]) =
+struct
+  include Make [@mode m] (Bound)
 
   module Stable = struct
     module V1 = struct
       type t = Bound.t Interval.Stable.V1.t
-      [@@deriving bin_io, compare, equal, hash, sexp, stable_witness]
+      [@@deriving
+        bin_io
+        , (compare [@mode.explicit m])
+        , (equal [@mode.explicit m])
+        , hash
+        , sexp
+        , stable_witness]
     end
   end
 end
 
-module Make_stable_with_sexp_grammar (Bound : Bound_stable_with_sexp_grammar) = struct
-  include Make (Bound)
+module%template
+  [@mode m = (global, local)]
+  Make_stable_with_sexp_grammar
+    (Bound : Bound_stable_with_sexp_grammar
+  [@mode m]) =
+struct
+  include Make [@mode m] (Bound)
 
   module Stable = struct
     module V1 = struct
       type t = Bound.t Interval.Stable.V1.t
-      [@@deriving bin_io, compare, equal, hash, sexp, stable_witness, sexp_grammar]
+      [@@deriving
+        bin_io
+        , (compare [@mode.explicit m])
+        , (equal [@mode.explicit m])
+        , hash
+        , sexp
+        , stable_witness
+        , sexp_grammar]
     end
   end
 end
 
-module Date = Make_stable (struct
+module%template Date = Make_stable [@mode local] (struct
     include Date.Stable.V1
-    include Comparable.Make (Date.Stable.V1)
+    include Comparable.Make [@mode local] (Date.Stable.V1)
   end)
 
-module Float = Make_stable (struct
+module%template Float = Make_stable [@mode local] (struct
     include Float.Stable.V1
-    include Comparable.Make (Float.Stable.V1)
+    include Comparable.Make [@mode local] (Float.Stable.V1)
   end)
 
-module Ofday_ns = Make_stable (struct
+module%template Ofday_ns = Make_stable [@mode local] (struct
     include Time_ns.Stable.Ofday.V1
-    include Comparable.Make (Time_ns.Stable.Ofday.V1)
+    include Comparable.Make [@mode local] (Time_ns.Stable.Ofday.V1)
   end)
 
-module Span_ns = Make_stable (struct
+module%template Span_ns = Make_stable [@mode local] (struct
     include Time_ns.Stable.Span.V2
-    include Comparable.Make (Time_ns.Stable.Span.V2)
+    include Comparable.Make [@mode local] (Time_ns.Stable.Span.V2)
   end)

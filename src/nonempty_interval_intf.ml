@@ -2,10 +2,32 @@ open! Core
 
 (** See {!Nonempty_interval} below. *)
 
-module type S = sig
-  type t [@@deriving bin_io, sexp, compare, equal, hash]
+module type%template [@mode m = (global, local)] S = sig
   type bound
+
+  type t : value mod contended portable with bound
+  [@@deriving
+    (bin_io [@mode m])
+    , sexp
+    , (compare [@mode.explicit m])
+    , (equal [@mode.explicit m])
+    , hash]
+
   type interval
+
+  (** [Set] is a set of pairwise-disjoint nonempty intervals. *)
+  module Set : sig
+    type outer := t
+    type t [@@deriving bin_io, sexp]
+
+    (** [create_from_intervals_exn outers] raises if [outers] are not disjoint. *)
+    val create_from_intervals_exn : outer list -> t
+
+    val union_list : t list -> t
+
+    (** [to_list] returns intervals in ascending order. *)
+    val to_list : t -> outer list
+  end
 
   val of_interval : interval -> t option
   val of_interval_exn : interval -> t
@@ -46,18 +68,25 @@ module type S = sig
   val half_open_intervals_are_a_partition : t list -> bool
 end
 
-module type S_stable = sig
-  include S
+module type%template [@mode m = (global, local)] S_stable = sig
+  include S [@mode m]
 
   module Stable : sig
     module V1 : sig
-      type nonrec t = t [@@deriving bin_io, compare, equal, sexp, stable_witness, hash]
+      type nonrec t = t
+      [@@deriving
+        bin_io
+        , (compare [@mode.explicit m])
+        , (equal [@mode.explicit m])
+        , sexp
+        , stable_witness
+        , hash]
     end
   end
 end
 
-module type S_stable_with_sexp_grammar = sig
-  include S_stable
+module type%template [@mode m = (global, local)] S_stable_with_sexp_grammar = sig
+  include S_stable [@mode m]
 
   module Stable : sig
     include module type of Stable
@@ -70,22 +99,22 @@ module type S_stable_with_sexp_grammar = sig
   end
 end
 
-module type Bound = sig
-  type t [@@deriving bin_io, sexp, hash]
+module type%template [@mode m = (global, local)] Bound = sig
+  type t [@@deriving (bin_io [@mode m]), sexp, hash]
 
-  include Comparable.S with type t := t
+  include Comparable.S [@mode m] with type t := t
 end
 
-module type Bound_stable = sig
+module type%template [@mode m = (global, local)] Bound_stable = sig
   type t [@@deriving stable_witness]
 
-  include Bound with type t := t
+  include Bound [@mode m] with type t := t
 end
 
-module type Bound_stable_with_sexp_grammar = sig
+module type%template [@mode m = (global, local)] Bound_stable_with_sexp_grammar = sig
   type t [@@deriving stable_witness, sexp_grammar]
 
-  include Bound with type t := t
+  include Bound [@mode m] with type t := t
 end
 
 module type Nonempty_interval = sig
@@ -94,41 +123,63 @@ module type Nonempty_interval = sig
       This adds a layer of safety if you don't expect your intervals to be empty. And it
       allows for more convenient accessors that return values instead of value options. *)
 
-  module type Bound = Bound
-  module type Bound_stable = Bound_stable
-  module type Bound_stable_with_sexp_grammar = Bound_stable_with_sexp_grammar
-  module type S = S
-  module type S_stable = S_stable
-  module type S_stable_with_sexp_grammar = S_stable_with_sexp_grammar
+  [%%template:
+  [@@@mode.default m = (global, local)]
 
-  module Make (Bound : Bound) :
-    S with type bound = Bound.t and type interval := Interval_lib.Interval.Make(Bound).t
+  module type Bound = Bound [@mode m]
+  module type Bound_stable = Bound_stable [@mode m]
+  module type Bound_stable_with_sexp_grammar = Bound_stable_with_sexp_grammar [@mode m]
+  module type S = S [@mode m]
+  module type S_stable = S_stable [@mode m]
+  module type S_stable_with_sexp_grammar = S_stable_with_sexp_grammar [@mode m]]
 
-  module Make_stable (Bound : Bound_stable) :
-    S_stable
+  module%template.portable [@mode m = (global, local)] Make (Bound : Bound [@mode m]) :
+    S
+    [@mode m]
     with type bound = Bound.t
      and type interval := Interval_lib.Interval.Make(Bound).t
 
-  module Make_stable_with_sexp_grammar (Bound : Bound_stable_with_sexp_grammar) :
+  module%template
+    [@mode m = (global, local)]
+    Make_stable
+      (Bound : Bound_stable
+    [@mode m]) :
+    S_stable
+    [@mode m]
+    with type bound = Bound.t
+     and type interval := Interval_lib.Interval.Make(Bound).t
+
+  module%template
+    [@mode m = (global, local)]
+    Make_stable_with_sexp_grammar
+      (Bound : Bound_stable_with_sexp_grammar
+    [@mode m]) :
     S_stable_with_sexp_grammar
+    [@mode m]
     with type bound = Bound.t
      and type interval := Interval_lib.Interval.Make(Bound).t
 
-  module Date :
+  module%template Date :
     S_stable
+    [@mode local]
     with type bound = Date.t
      and type interval := Interval_lib.Interval.Make(Date).t
 
-  module Float :
-    S_stable with type bound = float and type interval := Interval_lib.Interval.Float.t
-
-  module Ofday_ns :
+  module%template Float :
     S_stable
+    [@mode local]
+    with type bound = float
+     and type interval := Interval_lib.Interval.Float.t
+
+  module%template Ofday_ns :
+    S_stable
+    [@mode local]
     with type bound = Time_ns.Ofday.t
      and type interval := Interval_lib.Interval.Ofday_ns.t
 
-  module Span_ns :
+  module%template Span_ns :
     S_stable
+    [@mode local]
     with type bound = Time_ns.Span.t
      and type interval := Interval_lib.Interval.Make(Time_ns.Span).t
 end
